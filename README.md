@@ -35,7 +35,7 @@ CoTを採用することで、キャラクターの一貫性を保つことを�
 
 ### 構文
 ```bash
-python character_chat.py [-h] [--model モデル名] [--rapid-mode-threshold 文字数] [--send-url URL] [--no-show-action] [--no-show-error] JSONファイルのパス
+python character_chat.py [-h] [--model model] [--rapid-mode-threshold length] [--send-url url] [--no-show-action] [--no-show-error] json_path
 ```
 
 ### パラメータ
@@ -46,11 +46,11 @@ python character_chat.py [-h] [--model モデル名] [--rapid-mode-threshold 文
 - オプションパラメータ:
 	- -h, --help
 		- ヘルプメッセージを表示して終了する
-	- --model モデル名, -m モデル名
+	- --model model, -m model
 		- 使用するOpenAIモデル。`gpt-3.5-turbo`もしくは`gpt-4`が指定可能（デフォルト値：`gpt-3.5-turbo`）
-	- --rapid-mode-threshold 文字数
+	- --rapid-mode-threshold length
 		- 簡易モードを有効にする最大文字数。この文字数を超えると通常モード。（デフォルト値：6）
-	- --send-url URL
+	- --send-url url
 		- AIの発言を送信するURL（例：http://localhost:8080/t={speech}）
 	- --no-show-action
 		- AIの行動内容をコンソールに表示しない
@@ -112,7 +112,7 @@ AI: ユーザーさん、こんにちは。お元気ですか？（返事を返�
 
 ## 会話ファイル（.json）の書式
 
-サンプルを用意しているので、詳しくはそちらを参照のこと。
+[サンプル](./examples/)を用意しているので、詳しくはそちらを参照のこと。
 
 - `title`: 会話のタイトル
 - `speaker1`: あなたの名前
