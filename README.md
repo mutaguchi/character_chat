@@ -35,7 +35,7 @@ CoTを採用することで、キャラクターの一貫性を保つことを�
 
 ### 構文
 ```bash
-python character_chat.py [-h] [--model model] [--rapid-mode-threshold length] [--send-url url] [--no-show-action] [--no-show-error] json_path
+python character_chat.py [-h] [--model model] [--input text] [--run-once] [--format] [--rapid-mode-threshold length] [--send-url url] [--no-show-action] [--no-show-error] json_path
 ```
 
 ### パラメータ
@@ -48,6 +48,12 @@ python character_chat.py [-h] [--model model] [--rapid-mode-threshold length] [-
 		- ヘルプメッセージを表示して終了する
 	- --model model, -m model
 		- 使用するOpenAIモデル。`gpt-3.5-turbo`もしくは`gpt-4`が指定可能（デフォルト値：`gpt-3.5-turbo`）
+	- --input text, -i text
+		- ユーザーの最初の発言を指定
+	- --run-once, -r
+		- APIを実行してすぐに終了
+	- --format, -f
+		- JSON形式で出力
 	- --rapid-mode-threshold length
 		- 簡易モードを有効にする最大文字数。この文字数を超えると通常モード。（デフォルト値：6）
 	- --send-url url
@@ -57,18 +63,25 @@ python character_chat.py [-h] [--model model] [--rapid-mode-threshold length] [-
 	- --no-show-error
 		- AIが台詞を生成できなかった場合でもエラーメッセージを表示しない
 
+
 `--model`オプションには、`gpt-3.5-turbo`（デフォルト）か`gpt-4`のどちらかを指定してください。このスクリプトは1回のAPI呼び出しに3000トークン前後消費しますので、使用料金を鑑み、モデル選択には十分注意してください。ただし、`gpt-3.5-turbo`では十分な会話精度が得られないかもしれません。
 
 ## 使用法
 
 ### 基本
-コンソールに何か発言を書き込みEnterキーを押下すると、そのたびにOpenAIのChat APIを用いて返答が生成されます。これは会話なので、入力は最大100字くらいが良いです。コンソールにはAIの発言が表示され、（）内にAIの行動が表示されます。
+character_chat.pyを起動し、コンソールに何か発言を書き込みEnterキーを押下すると、そのたびにOpenAIのChat APIを用いて返答が生成されます。これは会話なので、入力は最大100字くらいが良いです。コンソールにはAIの発言が表示され、（）内にAIの行動が表示されます。
 
 ```
 ユーザー: こんにちは。よろしくお願いします。
 AI: ユーザーさん、こんにちは。お元気ですか？（返事を返した。）
 ```
 入力に倫理的あるいは論理的な問題（設定に矛盾する等）があり、モデルが回答を生成できなかった場合は、モデルが出力した文字列を、エラーメッセージとしてコンソールに出力します。
+
+あるいは、--inputパラメータ（or 標準入力）と--run-onceパラメータを指定し、発言を1回して即時終了させることもできます
+```
+> python character_chat.py conversations_sample_01.json --input "こんにちは。よろしくお願いします。" --run-once
+ユーザーさん、こんにちは。お元気ですか？（返事を返した。）
+```
 
 ### 行動の記述
 文末に（）で自分の行動を書くこともできます。

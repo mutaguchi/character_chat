@@ -38,7 +38,24 @@ def main():
         char_count = sum(len(s) for lst in conversations for s in lst)
 
         chat = Chat(model=settings.model)
-        speaker1Input = input(f'{speaker1}: ')
+
+        if not sys.stdin.isatty():
+            settings.run_once = True
+
+        if settings.initial_input:
+            speaker1Input = settings.initial_input
+            settings.initial_input = None
+
+            if settings.run_once:
+                pass
+            else:
+                print(f'{speaker1}: {speaker1Input}')
+        else:
+            if sys.stdin.isatty():
+                speaker1Input = input(f'{speaker1}: ')
+            else:
+                speaker1Input = input()
+
         order = False
         auto = False
         rapid = False
@@ -195,6 +212,10 @@ def main():
             speaker1_action = Paragraph(speaker1, "Action", max_length=50)
         elif rapid:
             chat.add_user(speaker1_speech_text)
+            speaker1_speech = Paragraph(
+                speaker1, "Dialogue", speaker1_speech_text)
+            speaker1_action = Paragraph(
+                speaker1, "Action", speaker1_action_text)
         else:
             speaker1_speech = Paragraph(speaker2, "Hearsay")
             speaker1_action = Paragraph(speaker2, "Observation")
@@ -250,20 +271,33 @@ def main():
             elif auto:
                 speaker1_speech_text = speaker1_speech.text
                 speaker1_action_text = speaker1_action.text
-                print(f'{speaker1}: {speaker1_speech_text}（{speaker1_action_text}）')
+                suffix = f'（{speaker1_action_text}）' if settings.show_action else ""
+                if not settings.format_json:
+                    print(f'{speaker1}: {speaker1_speech_text}{suffix}')
             elif rapid:
                 speaker2_understand.text = f"{speaker1}が{speaker1_speech_text}　と言った。"
                 speaker2_thought.text = f"返事をしよう。"
                 speaker2_speech.text = result
                 speaker2_action.text = "返事した。"
 
-            if settings.show_action and not rapid:
-                print(f'{speaker2}: {speaker2_speech.text}（{speaker2_action.text}）')
+            speaker1_speech = Paragraph(
+                speaker1, "Dialogue", speaker1_speech_text)
+            speaker1_action = Paragraph(
+                speaker1, "Action", speaker1_action_text)
+
+            if settings.format_json:
+                print(
+                    Message(
+                        speaker1_speech, speaker1_action, speaker2_understand, speaker2_thought, speaker2_action, speaker2_speech
+                    ).to_json()
+                )
             else:
-                print(f'{speaker2}: {speaker2_speech.text}')
+                prefix = "" if settings.run_once and not auto else f'{speaker2}: '
+                suffix = f'（{speaker2_action.text}）' if settings.show_action and not rapid else ""
+                print(f'{prefix}{speaker2_speech.text}{suffix}')
 
             conversations.append(
-                (speaker1_speech_text, speaker1_action_text, speaker2_understand.text, speaker2_thought.text, speaker2_action.text, speaker2_speech.text))
+                (speaker1_speech.text, speaker1_action.text, speaker2_understand.text, speaker2_thought.text, speaker2_action.text, speaker2_speech.text))
 
             if settings.send_speech and speaker2_speech.text:
                 try:
@@ -311,12 +345,17 @@ def main():
                 'conversations': conversations,
             }
             json.dump(data, f, ensure_ascii=False, indent=4)
+        if settings.run_once:
+            break
 
 
 @dataclass
 class Settings:
     conversation_path: str
     model: str
+    initial_input: str
+    run_once: bool
+    format_json: str
     rapid_mode_threshold: int
     send_url: Optional[str]
     show_action: bool
@@ -438,8 +477,8 @@ class Message:
         text = text.strip()
         if text and '<' in text and text[-1] != '>':
             text += '>'
-        for a in self.__paragraphs:
-            pattern += re.escape(f"{a.subject}'s {a.kind}")+r'\<(.*?)\>.*?'
+        for p in self.__paragraphs:
+            pattern += re.escape(f"{p.subject}'s {p.kind}")+r'\<(.*?)\>.*?'
         m = re.search(pattern, text, re.DOTALL)
         if m:
             groups = m.groups()
@@ -449,6 +488,10 @@ class Message:
         else:
             self.__error = text
             return False
+
+    def to_json(self):
+        return json.dumps([{'subject': p.subject, 'kind': p.kind, 'text': p.text}
+                           for p in self.__paragraphs], ensure_ascii=False, indent=4)
 
 
 class Paragraph:
@@ -501,6 +544,17 @@ def parse_arguments() -> Settings:
                         choices=['gpt-3.5-turbo', 'gpt-4'],
                         default='gpt-3.5-turbo',
                         help='name of the OpenAI model to use (default: %(default)s)')
+    parser.add_argument('--input', '-i',
+                        dest='initial_input',
+                        metavar='text',
+                        help='the user\'s initial input (default: None)')
+    parser.add_argument('--run-once', '-r',
+                        action='store_true',
+                        help='execute the API and immediately exit the script')
+    parser.add_argument('--format', '-f',
+                        dest='format_json',
+                        action='store_true',
+                        help='output the chat response in JSON format')
     parser.add_argument('--rapid-mode-threshold',
                         metavar='length',
                         default=6, type=int,
@@ -519,10 +573,13 @@ def parse_arguments() -> Settings:
     return Settings(
         conversation_path=args.path,
         model=args.model,
+        initial_input=args.initial_input,
+        run_once=args.run_once,
+        format_json=args.format_json,
         rapid_mode_threshold=args.rapid_mode_threshold,
         send_url=args.send_url,
         show_action=not args.no_show_action,
-        show_error=not args.no_show_error
+        show_error=not args.no_show_error,
     )
 
 
@@ -570,7 +627,6 @@ def summarize(title, story, speaker1, speaker2, last_conversations, current_conv
         )
 
         if summary_list.fill(result):
-
             with open(settings.summary_path, 'w', encoding='utf-8') as f:
                 f.write("前々回の会話：")
                 f.write(last_conversations["summary"])
@@ -582,6 +638,8 @@ def summarize(title, story, speaker1, speaker2, last_conversations, current_conv
             return [
                 summary_list.paragraphs[0].text,
                 summary_list.paragraphs[1].text]
+        elif settings.show_error:
+            print(summary_list.error, file=sys.stderr)
 
     return ["", ""]
 
