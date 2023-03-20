@@ -59,6 +59,8 @@ def main():
         order = False
         auto = False
         rapid = False
+        verbose = False
+        simple = False
 
         m = re.match(r'^(.*?)[\(（](.+?)[\)）]$', speaker1Input)
         if m:
@@ -75,6 +77,10 @@ def main():
             auto = True
             speaker1_speech_text = "自動"
             speaker1_action_text = "自動"
+        elif any(keyword in speaker1_speech_text for keyword in ["詳細に", "詳細な", "詳しく", "くわしく", "具体的", "例を挙げて"]):
+            verbose = True
+        elif any(keyword in speaker1_speech_text for keyword in ["簡潔に", "手短に", "てみじか", "簡単に", "かんたんに", "略すと", "要するに", "要点を", "一言で", "ひとことで", "はいかいいえで", "イエスかノー"]):
+            simple = True
         elif len(speaker1Input) <= settings.rapid_mode_threshold:
             rapid = True
 
@@ -110,12 +116,18 @@ def main():
             {Paragraph(speaker2, "Observation",f"Write what {speaker1} did.")}
             ''').lstrip()
 
-        instruction += textwrap.dedent(f'''
-        {Paragraph(speaker2, "Understanding",f'Write a short one-sentence description of how {speaker2} understood what {speaker1} said and did. This is an internal description, so {speaker1} will not get the message.')}
-        {Paragraph(speaker2, "Thought", f'Write a short one-sentence description of the feelings {speaker2} had based on his/her understanding and previous thoughts, what he/she should say or do next. It is an internal description, so {speaker1} will not get it.')}
-        {Paragraph(speaker2, "Dialogue", f'A short one-sentence description of what {speaker2} actually said to {speaker1} based on his/her thoughts. Also write specifics of what {speaker2} has read, researched, etc. If there is no dialogue, write "……"')}
-        {Paragraph(speaker2, "Action", f'Write a short one-sentence description of the action {speaker2} actually took against {speaker1} based on his/her thoughts.')}
-        ''').lstrip()
+        instruction += f'{Paragraph(speaker2, "Understanding",f"Write a short one-sentence description of how {speaker2} understood what {speaker1} said and did. This is an internal description, so {speaker1} will not get the message.")}\n'
+
+        instruction += f'{Paragraph(speaker2, "Thought", f"Write a short one-sentence description of the feelings {speaker2} had based on his/her understanding and previous thoughts, what he/she should say or do next. It is an internal description, so {speaker1} will not get it.")}\n'
+
+        if simple:
+            instruction += f'''{Paragraph(speaker2, "Dialogue", f"{speaker2} should provide a brief and concise answer, limiting their response to a single word or a simple 'yes' or 'no' choice, in response to {speaker1}'s questions")}\n'''
+        elif verbose:
+            instruction += f'''{Paragraph(speaker2, "Dialogue", f"Provide a detailed description, approximately 300 words long, of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as dialogue, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered.")}\n'''
+        else:
+            instruction += f'''{Paragraph(speaker2, "Dialogue", f"Provide a concise one-sentence description of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as dialogue, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered. If there is no dialogue, use ""……"".")}\n'''
+
+        instruction += f'''{Paragraph(speaker2, "Action", f'Write a short one-sentence description of the action {speaker2} actually took against {speaker1} based on his/her thoughts.')}\n'''
 
         if auto:
             instruction += f'Be sure to describe all Dialogue, Action, Understanding, and Thought.\n'
@@ -222,6 +234,10 @@ def main():
 
             if speaker1_speech_text == "……":
                 speaker1_speech.text = f"何も聞こえなかった。"
+            elif verbose:
+                speaker1_speech.text = f"{speaker1}は「{speaker1_speech_text}」と、300文字くらいでの詳しい説明を求めてきた。"
+            elif simple:
+                speaker1_speech.text = f"{speaker1}は「{speaker1_speech_text}」という、質問をしてきた。"
             else:
                 speaker1_speech.text = f"{speaker1}は「{speaker1_speech_text}」と言った。"
             speaker1_action.text = f"{speaker1}は、{speaker1_action_text}"
@@ -236,6 +252,17 @@ def main():
                               f"{speaker1}は自分に指示している。"),
                     Paragraph(speaker2, "Thought", f"{speaker1}の指示を実行しよう。"),
                 ))
+            elif simple:
+                chat.add_user(Message(
+                    speaker1_speech,
+                    Paragraph(speaker2, "Observation",
+                              f"{speaker1}が質問にシンプルに答えるように指示した。"),
+                ))
+                chat.add_assistant(Message(
+                    Paragraph(speaker2, "Understanding",
+                              f"{speaker1}は、短い回答を求めている。"),
+                    Paragraph(speaker2, "Thought", f"シンプルに、10文字以内で手短かに答えよう。"),
+                ))
             else:
                 chat.add_user(Message(
                     speaker1_speech, speaker1_action
@@ -246,10 +273,12 @@ def main():
         speaker2_understand = Paragraph(
             speaker2, "Understanding", max_length=50)
         speaker2_thought = Paragraph(speaker2, "Thought", max_length=50)
-        speaker2_speech = Paragraph(speaker2, "Dialogue", max_length=100)
+        dialogue_length = 300 if verbose else 10 if simple else 100
+        speaker2_speech = Paragraph(
+            speaker2, "Dialogue", max_length=dialogue_length)
         speaker2_action = Paragraph(speaker2, "Action", max_length=50)
 
-        if order:
+        if order or simple:
             result_message = Message(
                 speaker2_speech, speaker2_action
             )
@@ -264,10 +293,13 @@ def main():
                 speaker2_understand, speaker2_thought, speaker2_speech, speaker2_action
             )
 
-        if rapid or result_message.fill(result):
+        if (rapid and result) or result_message.fill(result):
             if order:
                 speaker2_understand.text = f"{speaker1}が{speaker1_speech_text}　と言った。"
                 speaker2_thought.text = f"実行しよう。"
+            elif simple:
+                speaker2_understand.text = f"{speaker1}が{speaker1_speech_text}　と聞いてきた。"
+                speaker2_thought.text = f"シンプルに答えよう。"
             elif auto:
                 speaker1_speech_text = speaker1_speech.text
                 speaker1_action_text = speaker1_action.text
@@ -331,8 +363,9 @@ def main():
             current_conversations["summary"], current_conversations["thought"] = summarize(
                 title, story, speaker1, speaker2, last_conversations, current_conversations)
 
-            oldConversations.append(current_conversations)
-            conversations = conversations[3:]
+            if current_conversations["summary"] and current_conversations["thought"]:
+                oldConversations.append(current_conversations)
+                conversations = conversations[3:]
 
         with open(settings.conversation_path, 'w', encoding='utf-8') as f:
             data = {
@@ -590,7 +623,7 @@ def summarize(title, story, speaker1, speaker2, last_conversations, current_conv
     The synopsis of this story is as follows:
     {story}
 
-    Please now summarize the conversation between {speaker1} and {speaker2} in the following format.
+    Please now summarize the conversation between {speaker1} and {speaker2} in Japanese in the following format.
     {Paragraph("Conversation", "Summary", "Summarize the content of this conversation in about 100 characters.")}
     {Paragraph(speaker2, "Thought", f"Summarize {speaker2}'s thoughts in this conversation in about 100 characters.")}
 

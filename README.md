@@ -35,7 +35,11 @@ CoTを採用することで、キャラクターの一貫性を保つことを�
 
 ### 構文
 ```bash
-python character_chat.py [-h] [--model model] [--input text] [--run-once] [--format] [--rapid-mode-threshold length] [--send-url url] [--no-show-action] [--no-show-error] json_path
+python character_chat.py [-h] 
+[--model model] [--input text] [--run-once] [--format]
+[--rapid-mode-threshold length] [--send-url url]
+[--no-show-action] [--no-show-error] 
+json_path
 ```
 
 ### パラメータ
@@ -88,6 +92,13 @@ AI: ユーザーさん、こんにちは。お元気ですか？（返事を返�
 ```
 ユーザー: おーい。（手を振って声を掛ける）
 ```
+
+### 回答の長さ変更
+入力に"詳細に", "詳細な", "詳しく", "くわしく", "具体的", "例を挙げて"のいずれかの語句が含まれていると、長文で回答します。
+
+入力に"簡潔に", "手短に", "てみじか", "簡単に", "かんたんに", "略すと", "要するに", "要点を", "一言で", "ひとことで", "はいかいいえで", "イエスかノー"のいずれかの語句が含まれていると、短文で回答します。
+
+これらのキーワードは試験的に設定したもので、将来的には変更するかもしれません。
 
 ### 指示モード
 
