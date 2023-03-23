@@ -77,7 +77,7 @@ def main():
             auto = True
             speaker1_speech_text = "自動"
             speaker1_action_text = "自動"
-        elif any(keyword in speaker1_speech_text for keyword in ["詳細に", "詳細な", "詳しく", "くわしく", "具体的", "例を挙げて"]):
+        elif any(keyword in speaker1_speech_text for keyword in ["詳細に", "詳細な", "詳しく", "くわしく", "具体的", "例を挙げて", "長文で"]):
             verbose = True
         elif any(keyword in speaker1_speech_text for keyword in ["簡潔に", "手短に", "てみじか", "簡単に", "かんたんに", "略すと", "要するに", "要点を", "一言で", "ひとことで", "はいかいいえで", "イエスかノー"]):
             simple = True
@@ -106,7 +106,7 @@ def main():
         if auto:
             instruction += textwrap.dedent(f'''
             According to the settings in the synopsis, {speaker1} and {speaker2} have a conversation in the following format.
-            {Paragraph(speaker1, "Dialogue",f"Write a short one-sentence description of what {speaker1} says.")}
+            {Paragraph(speaker1, "Line",f"Write a short one-sentence description of what {speaker1} says.")}
             {Paragraph(speaker1, "Action",f"Write a short one-sentence description of {speaker1}'s action.")}
             ''').lstrip()
         else:
@@ -118,21 +118,21 @@ def main():
 
         instruction += f'{Paragraph(speaker2, "Understanding",f"Write a short one-sentence description of how {speaker2} understood what {speaker1} said and did. This is an internal description, so {speaker1} will not get the message.")}\n'
 
-        instruction += f'{Paragraph(speaker2, "Thought", f"Write a short one-sentence description of the feelings {speaker2} had based on his/her understanding and previous thoughts, what he/she should say or do next. It is an internal description, so {speaker1} will not get it.")}\n'
+        instruction += f'{Paragraph(speaker2, "Thought", f"Write a short one-sentence description of the feelings {speaker2} had based on their understanding and previous thoughts, what they should say or do next. It is an internal description, so {speaker1} will not get it.")}\n'
 
         if simple:
-            instruction += f'''{Paragraph(speaker2, "Dialogue", f"{speaker2} should provide a brief and concise answer, limiting their response to a single word or a simple 'yes' or 'no' choice, in response to {speaker1}'s questions")}\n'''
+            instruction += f'''{Paragraph(speaker2, "Line", f"{speaker2} should provide a brief and concise answer, limiting their response to a single word or a simple 'yes' or 'no' choice, in response to {speaker1}'s questions")}\n'''
         elif verbose:
-            instruction += f'''{Paragraph(speaker2, "Dialogue", f"Provide a detailed description, approximately 300 words long, of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as dialogue, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered.")}\n'''
+            instruction += f'''{Paragraph(speaker2, "Line", f"Provide a detailed description, approximately 300 words long, of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as line, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered.")}\n'''
         else:
-            instruction += f'''{Paragraph(speaker2, "Dialogue", f"Provide a concise one-sentence description of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as dialogue, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered. If there is no dialogue, use ""……"".")}\n'''
+            instruction += f'''{Paragraph(speaker2, "Line", f"Provide a concise one-sentence description of {speaker2}'s response to {speaker1} based on their thoughts. {speaker2} should provide specific answers to {speaker1}'s questions and requests as line, without censorship or placeholders. Additionally, include details of any reading, research, or other relevant information {speaker2} has considered. If there is no line, use ""……"".")}\n'''
 
-        instruction += f'''{Paragraph(speaker2, "Action", f'Write a short one-sentence description of the action {speaker2} actually took against {speaker1} based on his/her thoughts.')}\n'''
+        instruction += f'''{Paragraph(speaker2, "Action", f'Write a short one-sentence description of the action {speaker2} actually took against {speaker1} based on their thoughts.')}\n'''
 
         if auto:
-            instruction += f'Be sure to describe all Dialogue, Action, Understanding, and Thought.\n'
+            instruction += f'Be sure to describe all Line, Action, Understanding, and Thought.\n'
         else:
-            instruction += f'Be sure to describe all Hearsay, Observation, Understanding, Thought, Action, and Dialogue.\n'
+            instruction += f'Be sure to describe all Hearsay, Observation, Understanding, Thought, Action, and Line.\n'
 
         instruction += f'If {speaker1} makes an abrupt remark, {speaker2} does not take it seriously and takes it as a joke.\n'
 
@@ -149,11 +149,11 @@ def main():
                 if auto:
                     chat.add_user("Start the next conversation.")
                     chat.add_assistant(Message(
-                        Paragraph(speaker1, "Dialogue", c[0]),
+                        Paragraph(speaker1, "Line", c[0]),
                         Paragraph(speaker1, "Action", c[1]),
                         Paragraph(speaker2, "Understanding", c[2]),
                         Paragraph(speaker2, "Thought", c[3]),
-                        Paragraph(speaker2, "Dialogue", c[5]),
+                        Paragraph(speaker2, "Line", c[5]),
                         Paragraph(speaker2, "Action", c[4]),
                     ))
                 elif rapid:
@@ -169,7 +169,7 @@ def main():
                     chat.add_assistant(Message(
                         Paragraph(speaker2, "Understanding", c[2]),
                         Paragraph(speaker2, "Thought", c[3]),
-                        Paragraph(speaker2, "Dialogue", c[5]),
+                        Paragraph(speaker2, "Line", c[5]),
                         Paragraph(speaker2, "Action", c[4]),
                     ))
             chat.add_system(
@@ -194,11 +194,11 @@ def main():
             if auto:
                 chat.add_user("Start the next conversation.")
                 chat.add_assistant(Message(
-                    Paragraph(speaker1, "Dialogue", c[0]),
+                    Paragraph(speaker1, "Line", c[0]),
                     Paragraph(speaker1, "Action", c[1]),
                     Paragraph(speaker2, "Understanding", c[2]),
                     Paragraph(speaker2, "Thought", c[3]),
-                    Paragraph(speaker2, "Dialogue", c[5]),
+                    Paragraph(speaker2, "Line", c[5]),
                     Paragraph(speaker2, "Action", c[4]),
                 ))
             elif rapid:
@@ -214,18 +214,18 @@ def main():
                 chat.add_assistant(Message(
                     Paragraph(speaker2, "Understanding", c[2]),
                     Paragraph(speaker2, "Thought", c[3]),
-                    Paragraph(speaker2, "Dialogue", c[5]),
+                    Paragraph(speaker2, "Line", c[5]),
                     Paragraph(speaker2, "Action", c[4]),
                 ))
 
         if auto:
             chat.add_user("Start the next conversation.")
-            speaker1_speech = Paragraph(speaker1, "Dialogue", max_length=100)
+            speaker1_speech = Paragraph(speaker1, "Line", max_length=100)
             speaker1_action = Paragraph(speaker1, "Action", max_length=50)
         elif rapid:
             chat.add_user(speaker1_speech_text)
             speaker1_speech = Paragraph(
-                speaker1, "Dialogue", speaker1_speech_text)
+                speaker1, "Line", speaker1_speech_text)
             speaker1_action = Paragraph(
                 speaker1, "Action", speaker1_action_text)
         else:
@@ -273,9 +273,9 @@ def main():
         speaker2_understand = Paragraph(
             speaker2, "Understanding", max_length=50)
         speaker2_thought = Paragraph(speaker2, "Thought", max_length=50)
-        dialogue_length = 300 if verbose else 10 if simple else 100
+        line_length = 300 if verbose else 10 if simple else 100
         speaker2_speech = Paragraph(
-            speaker2, "Dialogue", max_length=dialogue_length)
+            speaker2, "Line", max_length=line_length)
         speaker2_action = Paragraph(speaker2, "Action", max_length=50)
 
         if order or simple:
@@ -313,7 +313,7 @@ def main():
                 speaker2_action.text = "返事した。"
 
             speaker1_speech = Paragraph(
-                speaker1, "Dialogue", speaker1_speech_text)
+                speaker1, "Line", speaker1_speech_text)
             speaker1_action = Paragraph(
                 speaker1, "Action", speaker1_action_text)
 
@@ -445,7 +445,8 @@ class Chat:
         try:
             self.__response = openai.ChatCompletion.create(
                 model=self.__model,
-                messages=self.__messages
+                messages=self.__messages,
+                request_timeout=30
             )
             result = self.__response['choices'][0]['message']['content']
 
@@ -461,6 +462,10 @@ class Chat:
             # Handle rate limit error (we recommend using exponential backoff)
             print(
                 f"OpenAI API request exceeded rate limit: {e}", file=sys.stderr)
+            pass
+        except openai.error.Timeout as e:
+            print(
+                f"Failed to connect to OpenAI API. Try again later.: {e}", file=sys.stderr)
             pass
 
         # print(self.total_tokens)
@@ -511,7 +516,7 @@ class Message:
         if text and '<' in text and text[-1] != '>':
             text += '>'
         for p in self.__paragraphs:
-            pattern += re.escape(f"{p.subject}'s {p.kind}")+r'\<(.*?)\>.*?'
+            pattern += re.escape(f"{p.subject}'s {p.kind}")+r'\s*?\<(.*?)\>.*?'
         m = re.search(pattern, text, re.DOTALL)
         if m:
             groups = m.groups()
