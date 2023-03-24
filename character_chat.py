@@ -446,7 +446,7 @@ class Chat:
             self.__response = openai.ChatCompletion.create(
                 model=self.__model,
                 messages=self.__messages,
-                request_timeout=30
+                request_timeout=120
             )
             result = self.__response['choices'][0]['message']['content']
 
