@@ -10,6 +10,7 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 import textwrap
+import time
 
 
 def main():
@@ -188,7 +189,7 @@ def main():
                 f'You are {speaker2}. Now {speaker1} is going to talk to you, please reply as {speaker2}.')
         else:
             chat.add_system(
-                f'This is where the rest of the conversation begins.')
+                f'Let\'s describe the rest of the conversations step by step.')
 
         for c in conversations:
             if auto:
@@ -220,8 +221,8 @@ def main():
 
         if auto:
             chat.add_user("Start the next conversation.")
-            speaker1_speech = Paragraph(speaker1, "Line", max_length=100)
-            speaker1_action = Paragraph(speaker1, "Action", max_length=50)
+            speaker1_speech = Paragraph(speaker1, "Line", max_length=200)
+            speaker1_action = Paragraph(speaker1, "Action", max_length=100)
         elif rapid:
             chat.add_user(speaker1_speech_text)
             speaker1_speech = Paragraph(
@@ -442,31 +443,39 @@ class Chat:
                     break
 
         result = ""
-        try:
-            self.__response = openai.ChatCompletion.create(
-                model=self.__model,
-                messages=self.__messages,
-                request_timeout=120
-            )
-            result = self.__response['choices'][0]['message']['content']
+        max_retry = 2
+        delay = 5
+        retry = 0
 
-        except openai.error.APIError as e:
-            # Handle API error here, e.g. retry or log
-            print(f"OpenAI API returned an API Error: {e}", file=sys.stderr)
-            pass
-        except openai.error.APIConnectionError as e:
-            # Handle connection error here
-            print(f"Failed to connect to OpenAI API: {e}", file=sys.stderr)
-            pass
-        except openai.error.RateLimitError as e:
-            # Handle rate limit error (we recommend using exponential backoff)
-            print(
-                f"OpenAI API request exceeded rate limit: {e}", file=sys.stderr)
-            pass
-        except openai.error.Timeout as e:
-            print(
-                f"Failed to connect to OpenAI API. Try again later.: {e}", file=sys.stderr)
-            pass
+        while result == "" and retry <= max_retry:
+            try:
+                self.__response = openai.ChatCompletion.create(
+                    model=self.__model,
+                    messages=self.__messages,
+                    request_timeout=120
+                )
+                result = self.__response['choices'][0]['message']['content']
+
+            except Exception as e:
+                sleep_time = delay
+
+                if isinstance(e, (openai.error.APIConnectionError, openai.error.Timeout)):
+                    print(
+                        f"Failed to connect to OpenAI API: {e}", file=sys.stderr)
+                elif isinstance(e, openai.error.RateLimitError):
+                    print(
+                        f"OpenAI API request exceeded rate limit: {e}", file=sys.stderr)
+                    sleep_time = delay * (2**retry)
+                else:
+                    print(
+                        f"OpenAI API returned an Error: {e}", file=sys.stderr)
+                    return result
+
+                if retry == max_retry:
+                    return result
+                print(f"retry after {sleep_time} seconds", file=sys.stderr)
+                time.sleep(sleep_time)
+                retry += 1
 
         # print(self.total_tokens)
 
