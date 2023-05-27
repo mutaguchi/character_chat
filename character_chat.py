@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 import textwrap
 import time
+from urllib.parse import quote
 
 
 def main():
@@ -189,7 +190,7 @@ def main():
                 f'You are {speaker2}. Now {speaker1} is going to talk to you, please reply as {speaker2}.')
         else:
             chat.add_system(
-                f'Let\'s describe the rest of the conversations step by step.')
+                f'Let\'s proceed with the rest of the conversations step by step. It is a MUST that they adhere faithfully to the narrative setting and unfold in accordance with the storyline.')
 
         for c in conversations:
             if auto:
@@ -334,7 +335,12 @@ def main():
 
             if settings.send_speech and speaker2_speech.text:
                 try:
-                    url = settings.send_url.format(speech=speaker2_speech.text)
+                    url = settings.send_url.format(
+                        speech=quote(
+                            re.sub(r'[\n\r]+', '', speaker2_speech.text)),
+                        speaker=quote(
+                            re.sub(r'[\n\r]+', '', speaker2))
+                    )
                     response = requests.get(url)
                 except:
                     pass
@@ -448,6 +454,7 @@ class Chat:
         retry = 0
 
         while result == "" and retry <= max_retry:
+            openai.requestssession = requests.Session()
             try:
                 self.__response = openai.ChatCompletion.create(
                     model=self.__model,
@@ -455,6 +462,8 @@ class Chat:
                     request_timeout=120
                 )
                 result = self.__response['choices'][0]['message']['content']
+                openai.requestssession.close()
+                openai.requestssession = None
 
             except Exception as e:
                 sleep_time = delay
@@ -637,7 +646,7 @@ def summarize(title, story, speaker1, speaker2, last_conversations, current_conv
     The synopsis of this story is as follows:
     {story}
 
-    Please now summarize the conversation between {speaker1} and {speaker2} in Japanese in the following format.
+    Please now summarize the conversation between {speaker1} and {speaker2} in the following format.
     {Paragraph("Conversation", "Summary", "Summarize the content of this conversation in about 100 characters.")}
     {Paragraph(speaker2, "Thought", f"Summarize {speaker2}'s thoughts in this conversation in about 100 characters.")}
 
